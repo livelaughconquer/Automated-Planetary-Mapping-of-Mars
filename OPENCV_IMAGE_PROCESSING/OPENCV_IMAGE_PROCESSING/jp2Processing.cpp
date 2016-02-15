@@ -1,7 +1,7 @@
 #define MS_NO_COREDLL
 
 #include "gdal_priv.h"
-#include "cpl_conv.h" // for CPLMalloc()
+////#include "cpl_conv.h" // for CPLMalloc()
 #include "Python.h"
 //#include "opencv2/features2d/features2d.hpp"
 //#include "opencv2/objdetect/objdetect.hpp"
@@ -22,65 +22,6 @@ GDALDataset* open_dataset(std::string file_name) {
 	return (GDALDataset *)GDALOpen(file_name.c_str(), GA_Update);
 }
 
-uint8_t* get_mask(uint8_t* origin, uint8_t* labelled, uint32_t length) {
-
-	for (uint32_t i = 0; i < length; i++)
-		if (origin[i] == labelled[i])
-			labelled[i] = 0;
-		else
-			labelled[i] = 255;
-
-	return labelled;
-}
-
-bool get_north(uint8_t* image, uint32_t position, int64_t width) {
-	int64_t test = (position - width);
-	if ( test< 0)
-		return false;
-	else if (image[position] == image[position - width])
-		return true;
-	else
-		return false;
-}
-
-bool get_south(uint8_t* image, uint32_t position, uint32_t width,uint32_t height) {
-	if (position + width >= width*height)
-		return false;
-	else if (image[position] == image[position + width])
-		return true;
-	else
-		return false;
-}
-bool get_west(uint8_t* image, uint32_t position) {
-	if (position - 1 < 0)
-		return false;
-	else if (image[position] == image[position - 1])
-		return true;
-	else
-		return false;
-}
-bool get_east(uint8_t* image, uint32_t position, uint32_t width, uint32_t height) {
-	if (position + 1 <= width*height)
-		return false;
-	else if (image[position] == image[position + 1])
-		return true;
-	else
-		return false;
-}
-
-
-uint8_t* remove_noise(uint8_t* mask_band, uint32_t width, uint32_t height) {
-	for (uint32_t i = 0; i < width*height; i++)
-		if (!(get_north(mask_band, i, width) || get_south(mask_band, i, width, height) || get_east(mask_band, i, width, height) || get_west(mask_band, i)))
-			mask_band[i] = 255;
-	return mask_band;
-}
-
-void shift_left(uint16_t* input, uint32_t length) {
-	for (uint32_t i = 0; i < length; i++)
-		input[i] = input[i] << 8;
-	return;
-}
 
 int main(){
 		//Hardcoded strings for training datasets. In future would be parameters for extension.
@@ -108,7 +49,7 @@ int main(){
 		
 		//Stop gap solution for merging of training data images housed inside conditional as the processing takes 6 to 7mins
 		//while a load of previously written data is about 2 mins
-		if (image.empty()) {
+		//if (image.empty()) {
 
 			// Gets pointers to the two images provided by sponsor to use as training data
 			dataset = open_dataset(src);
@@ -153,7 +94,7 @@ int main(){
 			cv::merge(matrix_list, image);
 
 			//write the composite training image as stop gap to load up training data.
-			cv::imwrite(src_lbl + "training_image.tif", image);
+			cv::imwrite(src_lbl + "training_image1.tif", image);
 
 			//deallocates the array for labelled image and closes the gdal dataset
 			VSIFree(mask_arr);
@@ -162,9 +103,9 @@ int main(){
 			//deallocates the array for labelled image and closes the gdal dataset
 			VSIFree(data_arr);
 			GDALClose(dataset);
-		}
-		else {
-			std::cout << "Place Holder\n";
-		}
+		//}
+	//	else {
+		//	std::cout << "Place Holder\n";
+	//	}
 	return 0;
 }
