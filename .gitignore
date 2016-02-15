@@ -239,3 +239,19 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 
+
+OPENCV_IMAGE_PROCESSING/OPENCV_IMAGE_PROCESSING/x64/Debug/OPENCV_IMAGE_PROCESSING.log
+*.log
+*.tlog
+*.log
+*.obj
+*.tif
+*.exp
+*.exe
+*.ilk
+*.pdb
+*.tlog
+*.xml
+OPENCV_IMAGE_PROCESSING/OPENCV_IMAGE_PROCESSING/PSP_009650_1755_RED.JP2
+*.vcxproj
+*.sdf
