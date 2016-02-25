@@ -11,8 +11,8 @@ print np.get_include()
 module1 = Extension('load_extension',
                     sources = ['load_extension.cpp'],
                     include_dirs = [np.get_include(),'C:/opencv/build/include', 'C:/Anaconda2/include', 'C:/warmerda/bld/include','C:/Boost/include/boost-1_60'],
-                    library_dirs = ['C:/Anaconda2/libs', 'C:/opencv/build/x64/vc14\lib', 'C:/warmerda/bld/lib', 'C:/Boost/lib'],
-                    libraries = ['opencv_world310', 'gdal_i', 'python27','libboost_python-vc90-mt-1_60','libboost_iostreams-vc90-mt-1_60'],
+                    library_dirs = ['C:/Anaconda2/libs', 'C:/opencv/build/x64/vc14\lib', 'C:/warmerda/bld/lib', 'C:/Boost/lib', './'],
+                    libraries = ['opencv_world310', 'gdal_i', 'python27','libboost_python-vc90-mt-1_60'],
                     extra_compile_args= ['/EHsc']                    
 
 )
