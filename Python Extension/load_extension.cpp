@@ -19,8 +19,11 @@
 #include <string>
 #include <iostream>
 
+#include <thread>
+#include <vector>
 namespace py = boost::python;
 
+void simp(){std::cout<< "poop\n";}
 GDALDataset* open_dataset(std::string file_name) {
 		return (GDALDataset *)GDALOpen(file_name.c_str(), GA_Update);
 	}
@@ -52,11 +55,18 @@ void init() {
     import_array();
 }
 
+void filler( void* start, uint8_t * arr,int stride ){
+   uint8_t* temp =  (uint8_t *) start;
+//   uint8_t
+   for(int i =0; i<stride; i++){
+        temp[i] = arr[i];
+   }
+//   return;
+}
+
 bool getImage(PyObject* np, std::string file_name){
     int min = 2, max =2;
     PyArray_Descr* dtype = NULL;
-//    PyArrayObject* arr = (PyArrayObject)np;
-//    PyObject*
 
    PyArrayObject* ret = (PyArrayObject*)PyArray_FromAny( np, dtype, min, max, NPY_ARRAY_WRITEABLE, NULL);
 
@@ -68,36 +78,37 @@ bool getImage(PyObject* np, std::string file_name){
     GDALRasterBand *data_band = data->GetRasterBand(1);
 
 
-//    uint32_t image_columns = 256;//data_band->GetXSize();
-//    uint32_t image_rows = 256;//data_band->GetYSize();
 
 		// Get size of images. In future the sizes should be be acquired from both images and compared to prevent merge errors
     uint32_t image_columns = data_band->GetXSize();
     uint32_t image_rows = data_band->GetYSize();
-//
+
     uint8_t * data_arr = (uint8_t *)VSIMalloc(sizeof(uint8_t)*image_columns*image_rows);
     data_band->RasterIO(GF_Read, 0, 0, image_columns, image_rows, data_arr, image_columns, image_rows, GDT_Byte, 0, 0);
 //
     close_dataset(data);
+
+//
     uint64_t position = 0;
-    uint8_t * temp;
+//    uint8_t * temp;
 
 Py_BEGIN_ALLOW_THREADS;
-// while(position < image_columns*image_rows){
-//    std::cout << (int)data_arr[position++]<<std::endl;
+std::vector<std::thread> threadder;
+uint8_t * temp;
 // }
     for(uint64_t i=0; i<image_rows;i++){
-        for(uint64_t j=0; j<image_columns;j++){
-           temp = (uint8_t* )PyArray_GETPTR2(ret,i,j);
-           temp[0] = (int)data_arr[position++];
-//            std::cout <<  (int)temp[0]<< " ";//data_arr[position++]<<std::endl;
+           temp =(uint8_t*)PyArray_GETPTR2(ret,i,0);
+            threadder.push_back(std::thread(filler, temp ,&data_arr[position],image_columns));
+            position += image_columns;
         }
-//        std::cout <<std::endl;
-    }
 
+for(auto& thread : threadder){
+    thread.join();
+}
 // PyEval_ReleaseLock();
  if(position>=(image_rows*image_columns)){
 
+//    delete threadder;
     VSIFree(data_arr);
     Py_END_ALLOW_THREADS;
 //    Py_Finalize();
