@@ -262,3 +262,8 @@ OPENCV_IMAGE_PROCESSING/OPENCV_IMAGE_PROCESSING/x64/Debug/OPENCV_IMAGE_PROCESSIN
 *.sln
 *.iml
 Python Extension/.idea/.name
+*.txt
+Python Extension/load_extension.egg-info/PKG-INFO
+*.egg
+*.png
+Python Extension/example2.jp2
