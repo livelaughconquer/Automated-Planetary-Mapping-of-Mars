@@ -267,3 +267,4 @@ Python Extension/load_extension.egg-info/PKG-INFO
 *.egg
 *.png
 Python Extension/example2.jp2
+*.JP2
