@@ -23,7 +23,6 @@
 #include <vector>
 namespace py = boost::python;
 
-void simp(){std::cout<< "poop\n";}
 GDALDataset* open_dataset(std::string file_name) {
 		return (GDALDataset *)GDALOpen(file_name.c_str(), GA_Update);
 	}
@@ -63,8 +62,90 @@ void filler( void* start, uint8_t * arr,int stride ){
    }
 //   return;
 }
+bool getTraining(PyObject* np, std::string file_name, std::string training_file) {
+	Py_BEGIN_ALLOW_THREADS;
 
+	int min = 2, max = 2;
+	PyArray_Descr* dtype = NULL;
+
+	PyArrayObject* ret = (PyArrayObject*)PyArray_FromAny(np, dtype, min, max, NPY_ARRAY_WRITEABLE, NULL);
+
+	int dim = PyArray_NDIM(ret);
+	npy_intp* test = PyArray_DIMS(ret);
+	uint8_t* tester = (uint8_t*)PyArray_DATA(ret);
+	npy_intp s = PyArray_STRIDE(ret, 0);
+
+	GDALDataset* data = open_dataset(file_name);
+	GDALDataset* mask = open_dataset(training_file);
+
+	// Acquires pointers to raster data inside dataset structure
+	GDALRasterBand* data_band = data->GetRasterBand(1);
+	GDALRasterBand* mask_band = mask->GetRasterBand(1);
+
+//	data_band = data->GetRasterBand(1);
+	// Get size of images. In future the sizes should be be acquired from both images and compared to prevent merge errors
+	
+	uint32_t image_columns = data_band->GetXSize();
+	uint32_t image_rows = data_band->GetYSize();
+
+	//Allocates arrays to store image information for original and labelled images
+	//Initial trainng data is known to be 8-bit but future should check the data-type of image and process accordingly
+	uint8_t * data_arr = (uint8_t *)VSIMalloc(sizeof(uint8_t)*image_columns*image_rows);
+	uint8_t * mask_arr = (uint8_t *)VSIMalloc(sizeof(uint8_t)*image_columns*image_rows);
+
+
+	//Read entire images into their respective arrays
+	data_band->RasterIO(GF_Read, 0, 0, image_columns, image_rows, data_arr, image_columns, image_rows, GDT_Byte, 0, 0);
+	mask_band->RasterIO(GF_Read, 0, 0, image_columns, image_rows, mask_arr, image_columns, image_rows, GDT_Byte, 0, 0);
+
+
+	//Builds a opencv matrix out of the image data housed in the allocated arrays
+	cv::Mat image = cv::Mat(image_rows, image_columns, CV_8U, data_arr);
+	cv::Mat mask_layer = cv::Mat(image_rows, image_columns, CV_8U, mask_arr);
+
+	//xor the matrices to find differences between images provided by sponsor
+	cv::bitwise_xor(image, mask_layer, mask_layer);
+
+	VSIFree(data_arr);
+	close_dataset(data);
+
+	uint64_t position = 0;
+	
+	std::vector<std::thread> threadder;
+	uint8_t * temp;
+	// }
+	for (uint64_t i = 0; i<image_rows; i++) {
+		temp = (uint8_t*)PyArray_GETPTR2(ret, i, 0);
+		threadder.push_back(std::thread(filler, temp, &mask_arr[position], image_columns));
+		position += image_columns;
+	}
+
+	for (auto& thread : threadder) {
+		thread.join();
+	}
+//	cv::imwrite("training_image.tif", mask_layer);
+
+	// PyEval_ReleaseLock();
+	if (position >= (image_rows*image_columns)) {
+
+		//    delete threadder;
+		VSIFree(mask_arr);
+		close_dataset(mask);
+
+		Py_END_ALLOW_THREADS;
+		//    Py_Finalize();
+		return true;
+	}
+
+
+
+	//    std::cout << s;//test[0]<<" " <<test[1] <<std::endl;
+	//  tester[2]=99;
+	//   std::cout << (short)tester[4];
+}
 bool getImage(PyObject* np, std::string file_name){
+    Py_BEGIN_ALLOW_THREADS;
+
     int min = 2, max =2;
     PyArray_Descr* dtype = NULL;
 
@@ -92,7 +173,6 @@ bool getImage(PyObject* np, std::string file_name){
     uint64_t position = 0;
 //    uint8_t * temp;
 
-Py_BEGIN_ALLOW_THREADS;
 std::vector<std::thread> threadder;
 uint8_t * temp;
 // }
@@ -126,12 +206,8 @@ BOOST_PYTHON_MODULE(load_extension)
 {
 	init();
 	// Add regular functions to the module.
-//	py::
-//    py::numeric::array::set_module_and_type("numpy","ndarray");
+	py::def("getTraining", getTraining);
 	py::def("getImage", getImage);
 	py::def("get_dims", get_dims);
-
-//	py::
-//	boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
 }
 
