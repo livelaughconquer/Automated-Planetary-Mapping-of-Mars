@@ -52,6 +52,6 @@ testdata = _convert_supervised_to_classification(testdata )
 feed_nn = buildNetwork(traindata.indim, 64, traindata.outdim, outclass=SoftmaxLayer)
 trainer = BackpropTrainer( feed_nn, dataset=traindata, momentum=0.1, learningrate=0.01, verbose=True, weightdecay=0.01)
 
-trainer.trainEpochs(200)
+trainer.trainEpochs(10)
 print 'Percent Error on Test dataset: ', percentError(trainer.testOnClassData(
     dataset=testdata), testdata['class'])
