@@ -1,8 +1,11 @@
-__author__ = 'Jorge Felix'
+__author__ = 'Jorge Felix from TEAM STRATA'
 
-#Small Prototype of a Deep Neural Network that detects circles
+#Small Prototype of a Deep Neural Network that classifies images with white pixels, Not all the code was written by TEAM STRATA. A tutorial was used found at https://martin-thoma.com/classify-mnist-with-pybrain/
+
+#Import of Libraries
 import numpy
 import glob, os
+from sklearn.metrics import accuracy_score
 import load_extension
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,8 +15,7 @@ from StringIO import StringIO
 from math import sqrt
 import matplotlib.cm as cm
 import pylab
-
-#Pybrain Imports
+from numpy import ravel
 from pybrain.datasets            import ClassificationDataSet
 from pybrain.utilities           import percentError
 from pybrain.tools.shortcuts     import buildNetwork
@@ -26,8 +28,8 @@ from pybrain.tools.customxml.networkwriter import NetworkWriter
 from pybrain.tools.customxml.networkreader import NetworkReader
 
 #assumes you have Ryans images in the same folder as this script
-filename ="Untitled.tif"
-training_file = "circles_train.tif"
+train_file ="train_file.tif"
+test_file = "test_file.tif"
 
 #Function:Separate image into image blocks to use for training data
 #       Parameters:
@@ -70,8 +72,8 @@ def get_labeled_data(filename, training_file):
     x = load_extension.getTraining(label_image,filename, training_file)
 
     #Seperate Image and Label into blocks
-    test_blocks, blocks = create_image_blocks(24,11543,12576,rows,cols,image)
-    label_blocks, blocks = create_image_blocks(24,11543,12576,rows,cols,label_image)
+    test_blocks, blocks = create_image_blocks(64,64,64,rows,cols,image)
+    label_blocks, blocks = create_image_blocks(64,64,64,rows,cols,label_image)
     #Used to Write image blocks to folder
     # for i in range(blocks):
     #     im = Image.fromarray(test_blocks[i])
@@ -112,17 +114,82 @@ def neural_network(input, hidden, output):
     #Function call to make Network usable
     net.sortModules()
 
+def create_label_array(images, blocks):
+    #Create array to holde labels, 1:Present and 0:Not present
+    labels_array = np.zeros((blocks,1),'uint8')
+    for i in range(blocks):
+        if images[i].sum() > 0:
+            labels_array[i] = 1
+    return labels_array
+
+def classify(training, testing, HIDDEN_NEURONS, MOMENTUM, WEIGHTDECAY,
+             LEARNING_RATE, LEARNING_RATE_DECAY, EPOCHS):
+
+    INPUT_FEATURES = testing['rows'] * testing['cols']
+
+    trndata = ClassificationDataSet(INPUT_FEATURES, 1, nb_classes = 2)
+    tstdata = ClassificationDataSet(INPUT_FEATURES, 1, nb_classes = 2)
+
+    #Add testing and training data to Classification dataset
+    for i in range(len(testing['x'])):
+        tstdata.addSample(ravel(testing['x'][i]), [testing['y'][i]])
+
+    for i in range(len(training['x'])):
+        trndata.addSample(ravel(training['x'][i]), [training['y'][i]])
+
+    trndata._convertToOneOfMany()
+    tstdata._convertToOneOfMany()
+    #print trndata
+    #print tstdata
+
+    #Build Network
+    net = buildNetwork(trndata.indim, HIDDEN_NEURONS, trndata.outdim, outclass=SoftmaxLayer)
+    print net
+    #Create Trainer
+    #print trndata
+    #print tstdata
+    trainer = BackpropTrainer(net, dataset=trndata)
+
+    #train network
+    for i in range(EPOCHS):
+        #error = trainer.train()
+        #print "Epoch: %d, Error: %7.4f" % (i, error)
+        trainer.trainEpochs(1)
+        trnresult = percentError(trainer.testOnClassData(),
+                                 trndata['class'])
+        tstresult = percentError(trainer.testOnClassData(
+                                 dataset=tstdata), tstdata['class'])
+
+        print("epoch: %4d" % trainer.totalepochs,
+                     "  train error: %5.2f%%" % trnresult,
+                     "  test error: %5.2f%%" % tstresult)
+    return net
 
 #Test
-test_blocks, label_blocks = get_labeled_data(filename, training_file)
+if __name__ == '__main__':
+    #Split image into image blocks
+    train_blocks, label_blocks = get_labeled_data(train_file, train_file)
+    test_blocks, label_blocks = get_labeled_data(test_file, test_file)
 
-print test_blocks
-#view_data(20)
+    #print test_blocks[0][0]
+    #print test_blocks[18].sum()
+    #view_data(20)
+    labels_test = create_label_array(test_blocks,64)
+    labels_train = create_label_array(train_blocks, 64)
 
-#img = Image.open(filename)
-#im = numpy.array(img)
-#print label_image
-'''print test_blocks[3]
-print image
-im2= Image.fromarray(label_image)
-im2.save('train_test.tif')'''
+    #print labels
+    print 'Getting Test and Training data '
+    test_data = {'y': labels_test,'x': test_blocks, 'rows':64, 'cols':64 }
+    train_data = {'y': labels_train,'x': train_blocks, 'rows':64, 'cols':64 }
+    #print train_data
+    #print test_data
+    #img = Image.open(filename)
+    #im = numpy.array(img)
+    #print
+    #Run Classification
+    classify(train_data, test_data, 25, 0.1,
+             0.01, 0.01, 1, 50)
+    '''print test_blocks[3]
+    print image
+    im2= Image.fromarray(label_image)
+    im2.save('train_test.tif')'''
