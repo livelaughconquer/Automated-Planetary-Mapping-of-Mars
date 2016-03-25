@@ -1,5 +1,6 @@
 #define BOOST_PYTHON_STATIC_LIB
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+//#define BOOST_PYTHON_MAX_ARITY 30
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -31,7 +32,7 @@ void close_dataset(GDALDataset* data) {
 		GDALClose(data);
 	}
 
-py::tuple get_dims(std::string file_name) {
+py::tuple getDims(std::string file_name) {
 		//python::list dimensions;
 		GDALDataset* data = open_dataset(file_name);
 		GDALRasterBand *data_band;
@@ -48,7 +49,7 @@ py::tuple get_dims(std::string file_name) {
 		return py::make_tuple(image_height,image_width);
 
 	}
-void init() {
+void init_extent() {
 	Py_Initialize();
 	GDALAllRegister();
     import_array();
@@ -62,6 +63,8 @@ void filler( void* start, uint8_t * arr,int stride ){
    }
 //   return;
 }
+
+
 bool getTraining(PyObject* np, std::string file_name, std::string training_file) {
 	Py_BEGIN_ALLOW_THREADS;
 
@@ -195,19 +198,61 @@ for(auto& thread : threadder){
     return true;
  }
 
-
-
-//    std::cout << s;//test[0]<<" " <<test[1] <<std::endl;
-  //  tester[2]=99;
- //   std::cout << (short)tester[4];
 }
+bool writeImage(PyObject* np, std::string file_name) {
+	Py_BEGIN_ALLOW_THREADS;
+	int min = 2, max = 2;
+	PyArray_Descr* dtype = NULL;
+
+	PyArrayObject* ret = (PyArrayObject*)PyArray_FromAny(np, dtype, min, max, NPY_ARRAY_WRITEABLE, NULL);
+	//if()
+	const char *format = "GTiff";
+	//   const char *format = "JP2OpenJPEG";
+	GDALDriver* driver, *vrt_driver;
+	int dim = PyArray_NDIM(ret);
+	npy_intp* test = PyArray_DIMS(ret);
+	uint16_t* tester = (uint16_t*)PyArray_DATA(ret);
+	npy_intp s = PyArray_STRIDE(ret, 0);
+	//GDALDataset* data = open_dataset(file_name);
+	//GDALRasterBand *data_band = data->GetRasterBand(1);
+	//std::cout << test[0] << " " << test[1] << " "  << file_name <<" " << s <<std::endl;
+
+	//	cv::Mat image = cv::Mat(test[0], test[1], CV_8U, ret);
+	vrt_driver = (GDALDriver *)GDALGetDriverByName("MEM");
+	driver = (GDALDriver *)GDALGetDriverByName(format);
+	char ** options = NULL;
+
+	GDALDataset* src = vrt_driver->Create("", test[1], test[0], 1, GDT_Byte, options);
+	src->RasterIO(GF_Write, 0, 0, test[1], test[0], PyArray_GETPTR2(ret, 0, 0), test[1], test[0], GDT_Byte, 1, NULL, 0, 0, 0, NULL);
+
+	GDALDataset* image = driver->CreateCopy(file_name.c_str(), src, 0, options, NULL, NULL);
+	close_dataset(src);
+	GDALRasterBand *image_band = image->GetRasterBand(1);
+
+	int cols = image_band->GetXSize();
+	int rows = image_band->GetYSize();
+
+//	std::cout << rows << " " << cols << std::endl;
+
+	//	image_band->RasterIO(GF_Write, 0, 0, cols, rows,(uint16_t **)PyArray_GETPTR2(ret, 0, 0) , cols, rows, GDT_UInt16, 0, 0);
+
+	close_dataset(image);
+	//std::cout << driver->GetDescription();
+
+	Py_END_ALLOW_THREADS;
+	return true;
+
+}
+
 //using namespace boost::python;
 BOOST_PYTHON_MODULE(load_extension)
 {
-	init();
+	init_extent();
 	// Add regular functions to the module.
 	py::def("getTraining", getTraining);
 	py::def("getImage", getImage);
-	py::def("get_dims", get_dims);
+	py::def("getDims", getDims);
+	py::def("writeImage", writeImage);
+
 }
 
