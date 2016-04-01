@@ -24,6 +24,48 @@
 #include <vector>
 namespace py = boost::python;
 
+void counter(int stride) {
+	int count = 0;
+	//uint8_t* arr = (uint8_t*)row;
+	for (int i = 0; i < stride; i++)
+		//	if (arr[i])
+		count++;
+
+	std::cout << count << std::endl;
+	return;
+}
+
+std::string getLabel(PyObject* np, std::string success, std::string failure, double threshold) {
+	std::string label;
+	Py_BEGIN_ALLOW_THREADS;
+	int min = 2, max = 2;
+	PyArray_Descr* dtype = NULL;
+	PyArrayObject* ret = (PyArrayObject*)PyArray_FromAny(np, dtype, min, max, NPY_ARRAY_WRITEABLE, NULL);
+
+	int dim = PyArray_NDIM(ret);
+	npy_intp* test = PyArray_SHAPE(ret);
+	uint8_t* tester = (uint8_t*)PyArray_DATA(ret);
+
+	int counter = 0;
+	
+	for (int i = 0; i<test[0]; i++) {
+		counter += cv::countNonZero(cv::Mat(1,test[1], CV_8UC1, PyArray_GETPTR2(ret, i, 0)) ); //<< &temp << " ";
+	}
+
+
+	double percentage = ((double)counter) / ((double)(test[0] * test[1]));
+
+	if (percentage >= threshold) {
+		label = success;
+
+	}
+	else {
+		label = failure;
+	}
+
+	Py_END_ALLOW_THREADS;
+	return label;
+}
 GDALDataset* open_dataset(std::string file_name) {
 		return (GDALDataset *)GDALOpen(file_name.c_str(), GA_Update);
 	}
@@ -253,6 +295,6 @@ BOOST_PYTHON_MODULE(load_extension)
 	py::def("getImage", getImage);
 	py::def("getDims", getDims);
 	py::def("writeImage", writeImage);
-
+	py::def("getLabel", getLabel);
 }
 
