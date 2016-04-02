@@ -24,17 +24,13 @@
 #include <vector>
 namespace py = boost::python;
 
-void counter(int stride) {
-	int count = 0;
-	//uint8_t* arr = (uint8_t*)row;
-	for (int i = 0; i < stride; i++)
-		//	if (arr[i])
-		count++;
-
-	std::cout << count << std::endl;
-	return;
-}
-
+/*
+This function returns a Classification Label string
+	@ PyObject* np: This is an numpy array to be inspected 
+	@ string success: This is the Label that will be used to indicate the desired condition is met
+	@ string failure: This is the Label that will be used to indicate the desired condition is not met
+	@ double threshold: This a 0 to 1.0 percentage representation used for classification of the image 
+*/
 std::string getLabel(PyObject* np, std::string success, std::string failure, double threshold) {
 	std::string label;
 	Py_BEGIN_ALLOW_THREADS;
@@ -66,14 +62,21 @@ std::string getLabel(PyObject* np, std::string success, std::string failure, dou
 	Py_END_ALLOW_THREADS;
 	return label;
 }
+
+/*Helper function to open a Gdal dataset*/
 GDALDataset* open_dataset(std::string file_name) {
 		return (GDALDataset *)GDALOpen(file_name.c_str(), GA_Update);
 	}
 
+/*Helper function to close a Gdal dataset*/
 void close_dataset(GDALDataset* data) {
 		GDALClose(data);
 	}
 
+/*
+This function returns a tuple with the rows and columns of the given image
+	@ string filename: File system name that will be inspected
+*/
 py::tuple getDims(std::string file_name) {
 		//python::list dimensions;
 		GDALDataset* data = open_dataset(file_name);
@@ -91,12 +94,15 @@ py::tuple getDims(std::string file_name) {
 		return py::make_tuple(image_height,image_width);
 
 	}
+
+/*Intialization function*/
 void init_extent() {
 	Py_Initialize();
 	GDALAllRegister();
     import_array();
 }
 
+/*Threading helper function that populates numpy array with pixel data*/
 void filler( void* start, uint8_t * arr,int stride ){
    uint8_t* temp =  (uint8_t *) start;
 //   uint8_t
@@ -106,7 +112,11 @@ void filler( void* start, uint8_t * arr,int stride ){
 //   return;
 }
 
-
+/*This returns a bool to indicate that the operation was completed successfully
+	@ PyObject* np: This is an numpy array to be filled with the label information at the pixel level
+	@ string file_name: This is the file system name of image that the training image will be compared too
+	@ string training_file: This is the file system name of training image that the training pixel data will be extracted from
+*/
 bool getTraining(PyObject* np, std::string file_name, std::string training_file) {
 	Py_BEGIN_ALLOW_THREADS;
 
@@ -188,6 +198,11 @@ bool getTraining(PyObject* np, std::string file_name, std::string training_file)
 	//  tester[2]=99;
 	//   std::cout << (short)tester[4];
 }
+
+/*This returns a bool to indicate that the operation was completed successfully
+	@ PyObject* np: This is an numpy array to be filled with the image data pixel information
+	@ string file_name: This is the file system name of image that is to be loaded in the memory
+*/
 bool getImage(PyObject* np, std::string file_name){
     Py_BEGIN_ALLOW_THREADS;
 
@@ -241,6 +256,11 @@ for(auto& thread : threadder){
  }
 
 }
+
+/*This returns a bool to indicate that the operation was completed successfully
+	@ PyObject* np: This is an numpy array containing pixel information to be written to disk
+	@ string file_name: This is the file system name of image that is to be written to disk
+*/
 bool writeImage(PyObject* np, std::string file_name) {
 	Py_BEGIN_ALLOW_THREADS;
 	int min = 2, max = 2;
