@@ -1,6 +1,6 @@
-__author__ = 'Jorge Felix'
+__author__ = 'Team Strata'
+"""Convolutional Neural Network prototype - The prototype creates test and training data for a Neurial Network in order to detect sand dunes"""
 
-#Small Prototype of a Deep Neural Network that detects circles
 import numpy
 import glob, os
 import load_extension
@@ -13,17 +13,7 @@ from math import sqrt
 import matplotlib.cm as cm
 import pylab
 
-#Pybrain Imports
-from pybrain.datasets            import ClassificationDataSet
-from pybrain.utilities           import percentError
-from pybrain.tools.shortcuts     import buildNetwork
-from pybrain.supervised.trainers import BackpropTrainer
-from pybrain.structure.modules   import SoftmaxLayer
-from pybrain.structure import FeedForwardNetwork
-from pybrain.structure import LinearLayer, SigmoidLayer
-from pybrain.structure import FullConnection
-from pybrain.tools.customxml.networkwriter import NetworkWriter
-from pybrain.tools.customxml.networkreader import NetworkReader
+#Lasagne Imports
 
 #assumes you have Ryans images in the same folder as this script
 filename ="Untitled.tif"
@@ -92,25 +82,6 @@ def view_data(block_number):
         pylab.imshow(arr, cmap=cm.Greys_r)
     pylab.show()
 
-def neural_network(input, hidden, output):
-    #Creates Network object
-    net = FeedForwardNetwork()
-    #Create Input, hidden, and output layers
-    inLayer = LinearLayer(input)
-    hiddenLayer = SigmoidLayer(hidden)
-    outLayer = LinearLayer(output)
-    #Add to Network
-    net.addInputModule(inLayer)
-    net.addInputModule(hiddenLayer)
-    net.addInputModule(outLayer)
-    #Produce full connectivity
-    in_to_hidden = FullConnection(inLayer, hiddenLayer)
-    hidden_to_out = FullConnection(hiddenLayer, outLayer)
-    #Add to network
-    net.addConnection(in_to_hidden)
-    net.addConnection(hidden_to_out)
-    #Function call to make Network usable
-    net.sortModules()
 
 
 #Test
