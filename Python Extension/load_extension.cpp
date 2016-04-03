@@ -29,7 +29,7 @@ This function returns a Classification Label string
 	@ PyObject* np: This is an numpy array to be inspected 
 	@ string success: This is the Label that will be used to indicate the desired condition is met
 	@ string failure: This is the Label that will be used to indicate the desired condition is not met
-	@ double threshold: This a 0 to 1.0 percentage representation used for classification of the image 
+	@ double threshold: This a 0 to 1.0 percentage representation used for classification of the image based on total non zero pixels 
 */
 std::string getLabel(PyObject* np, std::string success, std::string failure, double threshold) {
 	std::string label;
@@ -275,17 +275,17 @@ bool writeImage(PyObject* np, std::string file_name) {
 	npy_intp* test = PyArray_DIMS(ret);
 	uint16_t* tester = (uint16_t*)PyArray_DATA(ret);
 	npy_intp s = PyArray_STRIDE(ret, 0);
-	//GDALDataset* data = open_dataset(file_name);
-	//GDALRasterBand *data_band = data->GetRasterBand(1);
-	//std::cout << test[0] << " " << test[1] << " "  << file_name <<" " << s <<std::endl;
 
-	//	cv::Mat image = cv::Mat(test[0], test[1], CV_8U, ret);
 	vrt_driver = (GDALDriver *)GDALGetDriverByName("MEM");
 	driver = (GDALDriver *)GDALGetDriverByName(format);
 	char ** options = NULL;
 
 	GDALDataset* src = vrt_driver->Create("", test[1], test[0], 1, GDT_Byte, options);
 	src->RasterIO(GF_Write, 0, 0, test[1], test[0], PyArray_GETPTR2(ret, 0, 0), test[1], test[0], GDT_Byte, 1, NULL, 0, 0, 0, NULL);
+
+	options = CSLSetNameValue(options, "NUM_THREADS", "ALL_CPUS");
+	options = CSLSetNameValue(options, "COMPRESS", "JPEG");
+	options = CSLSetNameValue(options, "JPEG_QUALITY", "100");
 
 	GDALDataset* image = driver->CreateCopy(file_name.c_str(), src, 0, options, NULL, NULL);
 	close_dataset(src);
@@ -317,4 +317,3 @@ BOOST_PYTHON_MODULE(load_extension)
 	py::def("writeImage", writeImage);
 	py::def("getLabel", getLabel);
 }
-
