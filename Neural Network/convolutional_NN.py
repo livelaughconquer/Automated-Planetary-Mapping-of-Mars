@@ -50,7 +50,7 @@ def create_image_blocks(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,
 
     #print image_blocks
     #Return numpy array with Image blocks arrays
-    return image_blocks,blocks
+    return image_blocks
 
 
 def get_labeled_data(filename, training_file):
@@ -66,8 +66,8 @@ def get_labeled_data(filename, training_file):
     x = load_extension.getTraining(label_image,filename, training_file)
 
     #Seperate Image and Label into blocks
-    test_blocks, blocks = create_image_blocks(768, 393,11543,rows,cols,image)
-    label_blocks, blocks = create_image_blocks(768, 393,11543,rows,cols,label_image)
+    test_blocks = create_image_blocks(768, 393,11543,rows,cols,image)
+    label_blocks = create_image_blocks(768, 393,11543,rows,cols,label_image)
     #Used to Write image blocks to folder
     #for i in range(blocks):
      #    im = Image.fromarray(test_blocks[i])
@@ -94,25 +94,45 @@ def view_data(block_number):
 
 #Step1:Load Data
 test_blocks, label_blocks = get_labeled_data(filename, training_file)
-print test_blocks.size
-print label_blocks.size
+print test_blocks.shape
+print label_blocks.shape
+
+
 
 
 
 #Step 2 Create Neural Network with 2 Hidden Layers
-def convolutionalNeuralNetwork(inputNodes, hiddenNodes, outputNodes, epochs):
+def convolutionalNeuralNetwork(epochs):
     net = NeuralNet(
         layers=[ #three layers: Input, hidden, and output
             ('input', layers.InputLayer),
-            ('hidden', layers.DenseLayer),
+            ('conv1', layers.Conv2DLayer),
+            ('pool1', layers.MaxPool2DLayer),
+            ('conv2', layers.Conv2DLayer),
+            ('pool2', layers.MaxPool2DLayer),
+            ('conv3', layers.Conv2DLayer),
+            ('pool3', layers.MaxPool2DLayer),
+            ('hidden4', layers.DenseLayer),
+            ('hidden5', layers.DenseLayer),
             ('output', layers.DenseLayer),
-         ],
+        ],
 
         #Parameters for the layers
-        input_shape = (None, inputNodes), #input pixels per image  block
-        hidden_num_units = hiddenNodes, #number of units in hidden layer
-        output_nonlinearity = None, #output layer uses identity function
-        output_num_units = outputNodes, #target values
+        input_shape = (None, 2,393,11543), #input pixels per image  block
+        conv1_num_filters=32,
+        conv1_filter_size=(3, 3),
+        pool1_pool_size=(2, 2),
+        conv2_num_filters=64,
+        conv2_filter_size=(2, 2),
+        pool2_pool_size=(2, 2),
+        conv3_num_filters=128,
+        conv3_filter_size=(2, 2),
+        pool3_pool_size=(2, 2),
+        hidden4_num_units=50,
+        hidden5_num_units=50,
+        output_num_units=1,
+        output_nonlinearity=None,
+
 
         #optimization method:
         update = nesterov_momentum,
@@ -127,8 +147,8 @@ def convolutionalNeuralNetwork(inputNodes, hiddenNodes, outputNodes, epochs):
 
 #Step 3 Train Neural Net
 
-#net = convolutionalNeuralNetwork(4536399, 1, 1, 400)
-#net.fit(test_blocks, label_blocks)
+net = convolutionalNeuralNetwork(40)
+net.fit(test_blocks, label_blocks)
 
 
 #Step 4 Test Neural Network
