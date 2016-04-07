@@ -21,10 +21,6 @@ from nolearn.lasagne import NeuralNet
 #######################################################################################################################
 #######################################################################################################################
 
-#assumes you have Ryans images in the same folder as this script
-filename ="test.tif"
-training_file = "train.tif"
-
 #Function:Separate image into image blocks to use for training data
 #       Parameters:
 #           row_pixel - number of pixels in a row of the new image blocks
@@ -50,7 +46,7 @@ def create_image_blocks(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,
 
     #print image_blocks
     #Return numpy array with Image blocks arrays
-    return image_blocks
+    return image_blocks, blocks
 
 
 def get_labeled_data(filename, training_file):
@@ -66,12 +62,14 @@ def get_labeled_data(filename, training_file):
     x = load_extension.getTraining(label_image,filename, training_file)
 
     #Seperate Image and Label into blocks
-    test_blocks = create_image_blocks(768, 393,11543,rows,cols,image)
-    label_blocks = create_image_blocks(768, 393,11543,rows,cols,label_image)
+    #test_blocks,blocks = create_image_blocks(768, 393,11543,rows,cols,image)
+    #label_blocks, blocks = create_image_blocks(768, 393,11543,rows,cols,label_image)
+    test_blocks,blocks = load4d(4096, 8, 8,rows,cols,image)
+    label_blocks, blocks = load4d(4096, 8,8,rows,cols,label_image)
     #Used to Write image blocks to folder
-    #for i in range(blocks):
-     #    im = Image.fromarray(test_blocks[i])
-      #   im.save(str(i) +"label.tif")
+    #or i in range(blocks):
+         #im = Image.fromarray(test_blocks[i][i])
+         #im.save(str(i) +"label.tif")
     return test_blocks, label_blocks
 
 def view_data(block_number):
@@ -88,20 +86,6 @@ def view_data(block_number):
         pylab.imshow(arr, cmap=cm.Greys_r)
     pylab.show()
 
-#######################################################################################################################
-#######################################################################################################################
-"""Below is the implementation of the convolutional neural network using the Lasagne library for python"""
-
-#Step1:Load Data
-test_blocks, label_blocks = get_labeled_data(filename, training_file)
-print test_blocks.shape
-print label_blocks.shape
-
-
-
-
-
-#Step 2 Create Neural Network with 2 Hidden Layers
 def convolutionalNeuralNetwork(epochs):
     net = NeuralNet(
         layers=[ #three layers: Input, hidden, and output
@@ -118,18 +102,18 @@ def convolutionalNeuralNetwork(epochs):
         ],
 
         #Parameters for the layers
-        input_shape = (None, 2,393,11543), #input pixels per image  block
-        conv1_num_filters=32,
-        conv1_filter_size=(3, 3),
-        pool1_pool_size=(2, 2),
-        conv2_num_filters=64,
-        conv2_filter_size=(2, 2),
-        pool2_pool_size=(2, 2),
-        conv3_num_filters=128,
-        conv3_filter_size=(2, 2),
-        pool3_pool_size=(2, 2),
-        hidden4_num_units=50,
-        hidden5_num_units=50,
+        input_shape = (None, 1, 8, 8), #input pixels per image  block
+        conv1_num_filters=1,
+        conv1_filter_size=(4, 4),
+        pool1_pool_size=(4, 4),
+        conv2_num_filters=4,
+        conv2_filter_size=(1, 1),
+        pool2_pool_size=(1, 1),
+        conv3_num_filters=4,
+        conv3_filter_size=(1, 1),
+        pool3_pool_size=(1, 1),
+        hidden4_num_units=4,
+        hidden5_num_units=4,
         output_num_units=1,
         output_nonlinearity=None,
 
@@ -138,17 +122,57 @@ def convolutionalNeuralNetwork(epochs):
         update = nesterov_momentum,
         update_learning_rate = 0.01,
         update_momentum = 0.9,
-
+        eval_size = .2,
         regression = True,
         max_epochs = epochs,
         verbose = 1,
     )
     return net
 
+"""Creates image blocks in shape (batch_size, channels, num_rows, num_columns). For test input in a 2D convolutional layer """
+def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
+    image_blocks = np.ones((blocks,1,row_pixel,col_pixel),'uint8')
+    #Variables to keep track of image slicing
+    block = 0
+    row = row_pixel
+    #Nested sloop that creates the image splicing and writes to Numpy array
+    for i in range(0, (og_row_pixel/row_pixel)):
+        col = col_pixel
+        for j in range(0, (og_col_pixel/col_pixel)):
+            image_blocks[block] = image[row-row_pixel:row,col-col_pixel:col]
+            block += 1
+            col += col_pixel
+        row += row_pixel
+
+    #print image_blocks
+    #Return numpy array with Image blocks arrays
+    return image_blocks, blocks
+#######################################################################################################################
+#######################################################################################################################
+"""Below is the implementation of the convolutional neural network using the Lasagne library for python"""
+
+#Step1:Load Data
+#assumes you have Ryans images in the same folder as this script
+filename ="circles.tif"
+training_file = "circles_train.tif"
+test_blocks, label_blocks = get_labeled_data(filename, training_file)
+print test_blocks.shape
+
+#print test_blocks
+print label_blocks.shape
+
+#Reshape data into 2D
+#test_blocks = test_blocks.reshape(-1, 4096, 8, 8)
+#label_blocks = label_blocks.reshape(-1, 4096, 8, 8)
+
+#print test_blocks
+
+#Step 2 Create Neural Network with 2 Hidden Layers
+net = convolutionalNeuralNetwork(40)
+
 #Step 3 Train Neural Net
 
-net = convolutionalNeuralNetwork(40)
-net.fit(test_blocks, label_blocks)
+#net.summary()
+train = net.fit(test_blocks, label_blocks)
 
-
-#Step 4 Test Neural Network
+#Step 4 Look at Predictions from neural network
