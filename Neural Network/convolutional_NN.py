@@ -12,6 +12,7 @@ from StringIO import StringIO
 from math import sqrt
 import matplotlib.cm as cm
 import pylab
+import cPickle as pickle
 
 #Lasagne Imports
 from lasagne import layers
@@ -85,6 +86,12 @@ def view_data(block_number):
         f.add_subplot(2, 1, i)
         pylab.imshow(arr, cmap=cm.Greys_r)
     pylab.show()
+
+# Load stored model
+with open('net.pickle', 'rb') as f:
+    net_pretrain = pickle.load(f)
+
+net_pretrain.max_epochs = 25  # Train the previous model over more epochs
 
 def convolutionalNeuralNetwork(epochs):
     net = NeuralNet(
@@ -168,11 +175,15 @@ print label_blocks.shape
 #print test_blocks
 
 #Step 2 Create Neural Network with 2 Hidden Layers
-net = convolutionalNeuralNetwork(40)
+net = convolutionalNeuralNetwork(10)
 
 #Step 3 Train Neural Net
+#train = net.fit(test_blocks, label_blocks)
+train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
 
+#Store the trained model
+with open('net.pickle', 'wb') as f:
+    pickle.dump(net, f, -1)
 #net.summary()
-train = net.fit(test_blocks, label_blocks)
 
 #Step 4 Look at Predictions from neural network
