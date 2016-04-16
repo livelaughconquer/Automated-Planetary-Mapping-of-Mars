@@ -32,33 +32,45 @@ This function returns a Classification Label string
 	@ double threshold: This a 0 to 1.0 percentage representation used for classification of the image based on total non zero pixels 
 */
 std::string getLabel(PyObject* np, std::string success, std::string failure, double threshold) {
-	std::string label;
+	std::string label = "";
 	Py_BEGIN_ALLOW_THREADS;
 	int min = 2, max = 2;
 	PyArray_Descr* dtype = NULL;
 	PyArrayObject* ret = (PyArrayObject*)PyArray_FromAny(np, dtype, min, max, NPY_ARRAY_WRITEABLE, NULL);
-
+	
+	bool flag = false;
+	
 	int dim = PyArray_NDIM(ret);
 	npy_intp* test = PyArray_SHAPE(ret);
-	uint8_t* tester = (uint8_t*)PyArray_DATA(ret);
-
-	int counter = 0;
+//	uint8_t* tester = (uint8_t*)PyArray_DATA(ret);
+	dtype = PyArray_DESCR(ret);
 	
-	for (int i = 0; i<test[0]; i++) {
-		counter += cv::countNonZero(cv::Mat(1,test[1], CV_8UC1, PyArray_GETPTR2(ret, i, 0)) ); //<< &temp << " ";
+	int counter = 0;
+	if (dtype->type_num == NPY_UBYTE) {
+		for (int i = 0; i<test[0]; i++) {
+			counter += cv::countNonZero(cv::Mat(1, test[1], CV_8UC1, PyArray_GETPTR2(ret, i, 0))); //<< &temp << " ";
+		}
+		flag = true;
 	}
-
-
-	double percentage = ((double)counter) / ((double)(test[0] * test[1]));
-
-	if (percentage >= threshold) {
-		label = success;
-
+	else if (dtype->type_num == NPY_USHORT) {
+		for (int i = 0; i<test[0]; i++) {
+			counter += cv::countNonZero(cv::Mat(1, test[1], CV_16UC1, PyArray_GETPTR2(ret, i, 0))); //<< &temp << " ";
+		}
+		flag = true;
 	}
-	else {
-		label = failure;
-	}
+	
+	if (flag){
+		double percentage = ((double)counter) / ((double)(test[0] * test[1]));
 
+		if (percentage >= threshold) {
+			label = success;
+
+		}
+		else {
+			label = failure;
+		}
+	}
+	
 	Py_END_ALLOW_THREADS;
 	return label;
 }
@@ -233,7 +245,7 @@ bool getImage(PyObject* np, std::string file_name){
 	uint32_t image_rows = data_band->GetYSize();
 
 	if (dtype->type_num == NPY_UBYTE) {
-		std::cout << " 8 bit\n";
+	//	std::cout << " 8 bit\n";
 		data_arr = (uint8_t *)VSIMalloc(sizeof(uint8_t)*image_columns*image_rows);
 		data_band->RasterIO(GF_Read, 0, 0, image_columns, image_rows, data_arr, image_columns, image_rows, GDT_Byte, 0, 0);
 
@@ -242,7 +254,7 @@ bool getImage(PyObject* np, std::string file_name){
 		data_arr_16 = (uint16_t *)VSIMalloc(sizeof(uint16_t)*image_columns*image_rows);
 		data_band->RasterIO(GF_Read, 0, 0, image_columns, image_rows, data_arr_16, image_columns, image_rows, GDT_UInt16, 0, 0);
 		flag = false;
-		std::cout << " 16 bit\n";
+//		std::cout << " 16 bit\n";
 
 	}
 	else {
