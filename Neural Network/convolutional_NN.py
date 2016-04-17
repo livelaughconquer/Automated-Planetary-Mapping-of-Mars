@@ -102,11 +102,18 @@ def view_data(block_number):
     pylab.show()
 
 # Load stored model
+<<<<<<< HEAD
 #with open('net.pickle', 'rb') as f:
  #   net_pretrain = pickle.load(f)
 
 #net_pretrain.max_epochs = 25  # Train the previous model over more epochs
 
+=======
+with open('net.pickle', 'rb') as f:
+    net_pretrain = pickle.load(f)
+
+net_pretrain.max_epochs = 25  # Train the previous model over more epochs
+>>>>>>> 1b15de85118d0cd04b7e2bba5eeb05fcf74c4c16
 
 def convolutionalNeuralNetwork(epochs):
     net = NeuralNet(
@@ -210,6 +217,7 @@ print test_blocks
 net = convolutionalNeuralNetwork(10)
 
 #Step 3 Train Neural Net
+<<<<<<< HEAD
 train = net.fit(test_blocks, label_blocks)
 #import pickle to store neural net training
 #train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
@@ -217,6 +225,15 @@ train = net.fit(test_blocks, label_blocks)
 #Store the trained model
 #with open('net.pickle', 'wb') as f:
     #pickle.dump(net, f, -1)
+=======
+#train = net.fit(test_blocks, label_blocks)
+train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
+
+#Store the trained model
+with open('net.pickle', 'wb') as f:
+    pickle.dump(net, f, -1)
+#net.summary()
+>>>>>>> 1b15de85118d0cd04b7e2bba5eeb05fcf74c4c16
 
 #Step 4 Look at Predictions from neural network
 
