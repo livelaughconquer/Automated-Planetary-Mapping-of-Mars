@@ -52,7 +52,7 @@ def create_image_blocks(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,
 
 
 
-def get_labeled_data(filename, training_file, block_size=28):
+def get_labeled_data(filename, training_file, block_size=32):
     """Read input-array (image) and label-images and return it as list of tuples. """
 
     rows,cols =  load_extension.getDims(filename)
@@ -126,28 +126,28 @@ def convolutionalNeuralNetwork(epochs):
 
         #Parameters for the layers
         #input layer
-        input_shape = (None, 1, 28, 28), #input pixels per image  block
+        input_shape = (None, 1, 32, 32), #input pixels per image  block
         #convolutional 1
-        conv1_num_filters=8,
-        conv1_filter_size=(2, 2),
+        conv1_num_filters=32,
+        conv1_filter_size=(5, 5),
         conv1_nonlinearity=lasagne.nonlinearities.rectify,
         conv1_W=lasagne.init.GlorotUniform(),
         #maxpool 1
         pool1_pool_size=(2, 2),
         #convolutional 2
-        conv2_num_filters=8,
-        conv2_filter_size=(1, 1),
+        conv2_num_filters=32,
+        conv2_filter_size=(5, 5),
         conv2_nonlinearity=lasagne.nonlinearities.rectify,
         conv2_W=lasagne.init.GlorotUniform(),
         #maxpool 2
-        pool2_pool_size=(4, 4),
+        pool2_pool_size=(2, 2),
         #dropout 1
-        dropout1_p=0.25,
+        dropout1_p=0.5,
         # dense
-        dense_num_units=1000,
+        dense_num_units=256,
         dense_nonlinearity=lasagne.nonlinearities.rectify,
         # dropout2
-        dropout2_p=0.25,
+        dropout2_p=0.5,
         # output
         output_nonlinearity=lasagne.nonlinearities.softmax,
         output_num_units=2,
@@ -182,6 +182,8 @@ def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
     #Return numpy array with Image blocks arrays
     return image_blocks, blocks
 
+
+
 #######################################################################################################################
 #######################################################################################################################
 """Below is the implementation of the convolutional neural network using the Lasagne library for python"""
@@ -195,6 +197,16 @@ X = test_blocks
 print label_blocks
 print test_blocks.shape, label_blocks.shape
 
+ones = 0
+zeroes = 0
+for i in range(label_blocks.shape[0]):
+    if label_blocks[i] == 1:
+        ones+=1
+    elif label_blocks[i] == 0:
+        zeroes += 1
+
+print ones, zeroes
+
 #labels = getLabel(training_file)
 #print labels
 #print test_blocks
@@ -204,10 +216,10 @@ print test_blocks.shape, label_blocks.shape
 #test_blocks = test_blocks.reshape(-1, 4096, 8, 8)
 #label_blocks = label_blocks.reshape(-1, 4096, 8, 8)
 
-print test_blocks
+#print test_blocks[40]
 
 #Step 2 Create Neural Network with 2 Hidden Layers
-net = convolutionalNeuralNetwork(10)
+net = convolutionalNeuralNetwork(25)
 
 #Step 3 Train Neural Net
 
@@ -226,10 +238,20 @@ train = net.fit(test_blocks, label_blocks)
 y_pred = net.predict(X)
 
 #Checking to see if predictions detect any sand dunes. Outputs the indice where a 1 is found.
+ones = 0
+zeroes = 0
+array_dunes = []
 for i in range(y_pred.shape[0]):
     if y_pred[i] == 1:
-        print i
+        ones+=1
+        array_dunes.append(i)
+    elif y_pred[i] == 0:
+        zeroes += 1
 
+print ones, zeroes
+
+for j in range(len(array_dunes)):
+    print array_dunes[j]
     #print y_pred[i]
 
 #Plot
