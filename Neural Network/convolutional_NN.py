@@ -15,6 +15,7 @@ from math import sqrt
 import matplotlib.cm as cm
 import pylab
 import cPickle as pickle
+import os.path
 
 #Lasagne Imports
 import lasagne
@@ -184,12 +185,11 @@ def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
 #######################################################################################################################
 """Below is the implementation of the convolutional neural network using the Lasagne library for python"""
 
-def loadDataset():
+def loadDataset(filename, training_file):
     """  Python Function that loads the testing and training images into numpy arrays. """
     #Step1:Load Data
-    #assumes you have Ryans images in the same folder as this script
-    filename = "test.tif"
-    training_file = "train.tif"
+    #filename = "test.tif"
+    #training_file = "train.tif"
     click.echo('Loading images....')
     click.echo(' ')
     click.echo('Image dimensions: ')
@@ -218,33 +218,61 @@ def loadDataset():
 
     return test_blocks, label_blocks
 
-def trainNetwork():
+def trainNetwork(epochs, testFile, trainFile):
     """Function that trains implemented network"""
 
-    # Load stored model
-    #with open('net.pickle', 'rb') as f:
-     #   net_pretrain = pickle.load(f)
-    #net_pretrain.max_epochs = 25  # Train the previous model over more epochs
+    test_blocks, label_blocks = loadDataset(testFile, trainFile)
+    
+    #Check to see if an existing pickle file exists
+    if os.path.isfile('net.pickle'):
+        # Load stored model
+        with open('net.pickle', 'rb') as f:
+            net_pretrain = pickle.load(f)
+        # Train the previous model over more epochs
+        net_pretrain.max_epochs = epochs  
 
-    test_blocks, label_blocks = loadDataset()
-    #Step 2 Create Neural Network with
-    net = convolutionalNeuralNetwork(25)
+        #Train pre-trained network
+        train = net_pretrain.fit(test_blocks, label_blocks) 
 
-    #Step 3 Train Neural Net
-    train = net.fit(test_blocks, label_blocks)
-    #import pickle to store neural net training
-   # train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
+        #Store the trained model
+        with open('net.pickle', 'wb') as f:
+            pickle.dump(net, f, -1)
+        return net
 
-    #Store the trained model
-    with open('net.pickle', 'wb') as f:
-        pickle.dump(net, f, -1)
-    return net
+    #If pickle does not exist then train network for the first time.     
+    else:
+        #Create Neural Network 
+        net = convolutionalNeuralNetwork(epochs)
+        #Train Neural Net
+        train = net.fit(test_blocks, label_blocks)
+
+        #Store the trained model
+        with open('net.pickle', 'wb') as f:
+            pickle.dump(net, f, -1)
+        return net
 
 
 
 #Step 4 Look at Predictions from neural network
-def predict(net, X):
-    y_pred = net.predict(X)
+def makePredictions(inputFile):
+
+    #Load stored data from network
+    try:
+        with open('net.pickle', 'rb') as f:
+            net_pretrain = pickle.load(f)
+        net_pretrain.max_epochs = 25  # Train the previous model over more epochs
+    except IOError as e:
+        print "No trained network is available. Use train command to train first. "
+
+    #Load image using extension
+    rows,cols =  load_extension.getDims(filename)
+    print rows,cols
+    image = np.ones((rows,cols),'uint8')
+    # x is a dummy to use as a form of error checking will return false on error
+    X = load_extension.getImage(image ,filename)
+
+    #Make predictions
+    y_pred = net_pretrain.predict(X)
 
     #Checking to see if predictions detect any sand dunes. Outputs the indice where a 1 is found.
     ones = 0
@@ -262,23 +290,41 @@ def predict(net, X):
     for j in range(len(array_dunes)):
         print array_dunes[j]
 
+    #Write image with predictions
 
-#######################################################################################################################
-#######################################################################################################################
-################################################# Main ################################################################
-@click.command()
-@click.option('--load', is_flag=True,help='Loads image data. Assumes files are in same directory as file and named test.tif and train.tif. ')
-@click.option('--train', is_flag=True,help='Input number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file.')
-@click.option('--predict', is_flag=True, help='Using existing trained network pickled data, make predictions on pickle data.')
-def userInterface(load, train, predict):
+##############################################################################################################################
+##############################################################################################################################
+################################################# Main and UI ################################################################
+
+@click.group()
+def userInterface(train, predict):
     """This program is designed to allow the user to load image data, train a neural network on the image data, or make predictions based on the stored neural network data. """
-    if load:
-        test_blocks, label_blocks = loadDataset()
-    elif train:
-        net = trainNetwork()
-    elif predict:
-        net =trainNetwork()
+        pass
+
+@userInterface.command()
+#@click.option('--load', is_flag=True,help='Loads image data. Assumes files are in same directory as file and named test.tif and train.tif. ')
+@click.argument('testFile')
+@click.argument('trainFile')
+def load(testFile, trainFile):
+    """ Loads image data. Input test and train file as an argument. Example: python convolutional_NN.py load testFile.tif trainFile.tif """
+    test_blocks, label_blocks = loadDataset(testFile, trainFile)
+
+@userInterface.command()
+@click.argument('testFile')
+@click.argument('trainFile')
+@click.option('--epochs', default=1 ,help=' Input number of Epochs you would like to train network on.')
+def train(testFile, trainFile, epochs):
+    """Input testFile trainFile, and number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file."""
+    net = trainNetwork(epochs, testFile, trainFile)
+
+@userInterface.command()
+#@click.option('--predict', is_flag=True, help='Using existing trained network pickled data, make predictions on pickle data.')
+@click.argument('inputImage')
+def predict(inputImage):
+    """Using existing trained network pickled data, make predictions on pickle data. Input image as an argument. """
+    makePredictions(inputImage)
 
 if __name__ == '__main__':
+    """Main Function"""
     userInterface()
   #net = trainNetwork()
