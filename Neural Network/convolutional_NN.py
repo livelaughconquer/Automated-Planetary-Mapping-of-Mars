@@ -1,6 +1,8 @@
 __author__ = 'Team Strata'
-"""Convolutional Neural Network prototype - The prototype creates test and training data for a Neurial Network in order to detect sand dunes"""
+"""Convolutional Neural Network prototype - The prototype creates test and training data for a Neural Network in order to detect sand dunes"""
 
+
+import click
 import numpy
 import glob, os
 import load_extension
@@ -101,12 +103,6 @@ def view_data(block_number):
         pylab.imshow(arr, cmap=cm.Greys_r)
     pylab.show()
 
-# Load stored model
-
-#with open('net.pickle', 'rb') as f:
- #   net_pretrain = pickle.load(f)
-
-#net_pretrain.max_epochs = 25  # Train the previous model over more epochs
 
 def convolutionalNeuralNetwork(epochs):
     net = NeuralNet(
@@ -188,72 +184,101 @@ def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
 #######################################################################################################################
 """Below is the implementation of the convolutional neural network using the Lasagne library for python"""
 
-#Step1:Load Data
-#assumes you have Ryans images in the same folder as this script
-filename ="test.tif"
-training_file = "train.tif"
-test_blocks, label_blocks = get_labeled_data(filename, training_file)
-X = test_blocks
-print label_blocks
-print test_blocks.shape, label_blocks.shape
+def loadDataset():
+    """  Python Function that loads the testing and training images into numpy arrays. """
+    #Step1:Load Data
+    #assumes you have Ryans images in the same folder as this script
+    filename = "test.tif"
+    training_file = "train.tif"
+    click.echo('Loading images....')
+    click.echo(' ')
+    click.echo('Image dimensions: ')
+    test_blocks, label_blocks = get_labeled_data(filename, training_file)
 
-ones = 0
-zeroes = 0
-for i in range(label_blocks.shape[0]):
-    if label_blocks[i] == 1:
-        ones+=1
-    elif label_blocks[i] == 0:
-        zeroes += 1
+    #click.echo(label_blocks)
+    click.echo('')
+    click.echo('Shape of test followed by train: ')
+    click.echo(test_blocks.shape)
+    click.echo(label_blocks.shape)
 
-print ones, zeroes
+    ones = 0
+    zeroes = 0
+    for i in range(label_blocks.shape[0]):
+        if label_blocks[i] == 1:
+            ones+=1
+        elif label_blocks[i] == 0:
+            zeroes += 1
 
-#labels = getLabel(training_file)
-#print labels
-#print test_blocks
-# print label_blocks.shape
+    click.echo(' ')
+    click.echo('Number of success sand dune blocks followed by failure labels: ')
+    click.echo( ones )
+    click.echo(zeroes )
 
-#Reshape data into 2D
-#test_blocks = test_blocks.reshape(-1, 4096, 8, 8)
-#label_blocks = label_blocks.reshape(-1, 4096, 8, 8)
+    click.echo('Images have been successfully loaded')
 
-#print test_blocks[40]
+    return test_blocks, label_blocks
 
-#Step 2 Create Neural Network with 2 Hidden Layers
-net = convolutionalNeuralNetwork(25)
+def trainNetwork():
+    """Function that trains implemented network"""
 
-#Step 3 Train Neural Net
+    # Load stored model
+    #with open('net.pickle', 'rb') as f:
+     #   net_pretrain = pickle.load(f)
+    #net_pretrain.max_epochs = 25  # Train the previous model over more epochs
 
-train = net.fit(test_blocks, label_blocks)
-#import pickle to store neural net training
-#train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
+    test_blocks, label_blocks = loadDataset()
+    #Step 2 Create Neural Network with
+    net = convolutionalNeuralNetwork(25)
 
-#Store the trained model
-#with open('net.pickle', 'wb') as f:
-    #pickle.dump(net, f, -1)
+    #Step 3 Train Neural Net
+    train = net.fit(test_blocks, label_blocks)
+    #import pickle to store neural net training
+   # train = net_pretrain.fit(test_blocks, label_blocks) #Train pre-trained model more
+
+    #Store the trained model
+    with open('net.pickle', 'wb') as f:
+        pickle.dump(net, f, -1)
+    return net
 
 
 
 #Step 4 Look at Predictions from neural network
+def predict(net, X):
+    y_pred = net.predict(X)
 
-y_pred = net.predict(X)
+    #Checking to see if predictions detect any sand dunes. Outputs the indice where a 1 is found.
+    ones = 0
+    zeroes = 0
+    array_dunes = []
+    for i in range(y_pred.shape[0]):
+        if y_pred[i] == 1:
+            ones+=1
+            array_dunes.append(i)
+        elif y_pred[i] == 0:
+            zeroes += 1
 
-#Checking to see if predictions detect any sand dunes. Outputs the indice where a 1 is found.
-ones = 0
-zeroes = 0
-array_dunes = []
-for i in range(y_pred.shape[0]):
-    if y_pred[i] == 1:
-        ones+=1
-        array_dunes.append(i)
-    elif y_pred[i] == 0:
-        zeroes += 1
+    print ones, zeroes
 
-print ones, zeroes
+    for j in range(len(array_dunes)):
+        print array_dunes[j]
 
-for j in range(len(array_dunes)):
-    print array_dunes[j]
-    #print y_pred[i]
 
-#Plot
-#im = Image.fromarray(y_pred)
-#im.save("label.tif")
+#######################################################################################################################
+#######################################################################################################################
+################################################# Main ################################################################
+@click.command()
+@click.option('--load', is_flag=True,help='Loads image data. Assumes files are in same directory as file and named test.tif and train.tif. ')
+@click.option('--train', is_flag=True,help='Input number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file.')
+@click.option('--predict', is_flag=True, help='Using existing trained network pickled data, make predictions on pickle data.')
+def userInterface(load, train, predict):
+    """This program is designed to allow the user to load image data, train a neural network on the image data, or make predictions based on the stored neural network data. """
+    if load:
+        test_blocks, label_blocks = loadDataset()
+    elif train:
+        net = trainNetwork()
+    elif predict:
+        net =trainNetwork()
+
+if __name__ == '__main__':
+    userInterface()
+  #net = trainNetwork()
