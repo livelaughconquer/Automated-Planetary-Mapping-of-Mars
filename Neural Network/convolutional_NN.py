@@ -3,15 +3,11 @@ __author__ = 'Team Strata'
 
 
 import click
-import numpy
 import glob, os
 import load_extension
 import numpy as np
-import matplotlib.pyplot as plt
-import datetime
+
 from PIL import Image
-from StringIO import StringIO
-from math import sqrt
 import matplotlib.cm as cm
 import pylab
 import cPickle as pickle
@@ -179,17 +175,38 @@ def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
     #Return numpy array with Image blocks arrays
     return image_blocks, blocks
 
+def getPredictionData(inputFile, block_size=32):
+     #Load image using extension
+    rows,cols =  load_extension.getDims(inputFile)
+    print rows,cols
+    image = np.ones((rows,cols),'uint8')
+    # x is a dummy to use as a form of error checking will return false on error
+    x = load_extension.getImage(image ,inputFile)
+    X = []
 
+    block_size = 32
+    for i in xrange(0,rows,block_size):
+        for j in xrange(0,cols,block_size):
+            try:
+                X.append(image[i:i + block_size, j:j + block_size].reshape(1, block_size * block_size))
+            except ValueError:
+                continue
+
+    X = np.array(X).astype(np.float32)
+    X = X.reshape(-1, 1, block_size, block_size)
+    return X
 
 #######################################################################################################################
 #######################################################################################################################
 """Below is the implementation of the convolutional neural network using the Lasagne library for python"""
 
-def loadDataset(filename, training_file):
+def loadDataset(test, train):
     """  Python Function that loads the testing and training images into numpy arrays. """
     #Step1:Load Data
-    #filename = "test.tif"
-    #training_file = "train.tif"
+    filename = test
+    print test
+    training_file = train
+    print train
     click.echo('Loading images....')
     click.echo(' ')
     click.echo('Image dimensions: ')
@@ -236,8 +253,8 @@ def trainNetwork(epochs, testFile, trainFile):
 
         #Store the trained model
         with open('net.pickle', 'wb') as f:
-            pickle.dump(net, f, -1)
-        return net
+            pickle.dump(net_pretrain, f, -1)
+        return net_pretrain
 
     #If pickle does not exist then train network for the first time.     
     else:
@@ -256,6 +273,8 @@ def trainNetwork(epochs, testFile, trainFile):
 #Step 4 Look at Predictions from neural network
 def makePredictions(inputFile):
 
+    X = getPredictionData(inputFile)
+
     #Load stored data from network
     try:
         with open('net.pickle', 'rb') as f:
@@ -264,12 +283,6 @@ def makePredictions(inputFile):
     except IOError as e:
         print "No trained network is available. Use train command to train first. "
 
-    #Load image using extension
-    rows,cols =  load_extension.getDims(filename)
-    print rows,cols
-    image = np.ones((rows,cols),'uint8')
-    # x is a dummy to use as a form of error checking will return false on error
-    X = load_extension.getImage(image ,filename)
 
     #Make predictions
     y_pred = net_pretrain.predict(X)
@@ -297,34 +310,47 @@ def makePredictions(inputFile):
 ################################################# Main and UI ################################################################
 
 @click.group()
-def userInterface(train, predict):
+def userInterface():
     """This program is designed to allow the user to load image data, train a neural network on the image data, or make predictions based on the stored neural network data. """
-        pass
+    pass
 
 @userInterface.command()
 #@click.option('--load', is_flag=True,help='Loads image data. Assumes files are in same directory as file and named test.tif and train.tif. ')
-@click.argument('testFile')
-@click.argument('trainFile')
-def load(testFile, trainFile):
+@click.argument('testfile')
+@click.argument('trainfile')
+def load(testfile, trainfile):
     """ Loads image data. Input test and train file as an argument. Example: python convolutional_NN.py load testFile.tif trainFile.tif """
-    test_blocks, label_blocks = loadDataset(testFile, trainFile)
+    #Convert Unicode to string
+    test = str(testfile)
+    train = str(trainfile)
+    test_blocks, label_blocks = loadDataset(test, train)
 
 @userInterface.command()
-@click.argument('testFile')
-@click.argument('trainFile')
+@click.argument('testfile')
+@click.argument('trainfile')
 @click.option('--epochs', default=1 ,help=' Input number of Epochs you would like to train network on.')
-def train(testFile, trainFile, epochs):
-    """Input testFile trainFile, and number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file."""
-    net = trainNetwork(epochs, testFile, trainFile)
+def train(testfile, trainfile, epochs):
+    """Input testFile trainFile, and number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file. Example: python convolutional_NN.py load testFile.tif trainFile.tif --epochs=10"""
+    #Convert Unicode to string
+    test = str(testfile)
+    train = str(trainfile)
+    click.echo('Training network....')
+    net = trainNetwork(epochs, test, train)
+    click.echo('Training done.')
 
 @userInterface.command()
 #@click.option('--predict', is_flag=True, help='Using existing trained network pickled data, make predictions on pickle data.')
-@click.argument('inputImage')
-def predict(inputImage):
+@click.argument('input')
+def predict(input):
     """Using existing trained network pickled data, make predictions on pickle data. Input image as an argument. """
-    makePredictions(inputImage)
+    input = str(input)
+    click.echo('Making Predictions....')
+    makePredictions(input)
+    click.echo('Predictions done.')
 
 if __name__ == '__main__':
     """Main Function"""
     userInterface()
-  #net = trainNetwork()
+    #net = trainNetwork()
+    #makePredictions("test.tif")
+    #loadDataset("test.tif", "train.tif")
