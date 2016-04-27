@@ -275,6 +275,7 @@ def makePredictions(inputFile):
 
     X = getPredictionData(inputFile)
 
+    click.echo('Loading trained network data....')
     #Load stored data from network
     try:
         with open('net.pickle', 'rb') as f:
@@ -283,7 +284,8 @@ def makePredictions(inputFile):
     except IOError as e:
         print "No trained network is available. Use train command to train first. "
 
-
+    click.echo('')
+    click.echo('Making predictions....')
     #Make predictions
     y_pred = net_pretrain.predict(X)
 
@@ -298,12 +300,22 @@ def makePredictions(inputFile):
         elif y_pred[i] == 0:
             zeroes += 1
 
+    click.echo('')
+    click.echo('Dune blocks detected followed by negative blocks.')
     print ones, zeroes
 
-    for j in range(len(array_dunes)):
-        print array_dunes[j]
+    click.echo('')
+    click.echo('Adding predictions to input image....')
+    #Adding predictions to image data
+    white_pixels = np.array([255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255])
+    for block in array_dunes:
+        for i in range(32):
+            X[block][0][i] = white_pixels;
 
-    #Write image with predictions
+    #Writing image
+    click.echo('')
+    click.echo('Writing image to directory....')
+
 
 ##############################################################################################################################
 ##############################################################################################################################
@@ -367,7 +379,7 @@ def train(testfile, trainfile, epochs):
 def predict(input):
     """Make predictions on input image."""
     input = str(input)
-    click.echo('Making Predictions....')
+    #click.echo('Making Predictions....')
     makePredictions(input)
     click.echo('Predictions done.')
 
