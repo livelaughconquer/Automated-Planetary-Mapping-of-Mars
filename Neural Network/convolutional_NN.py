@@ -311,7 +311,30 @@ def makePredictions(inputFile):
 
 @click.group()
 def userInterface():
-    """This program is designed to allow the user to load image data, train a neural network on the image data, or make predictions based on the stored neural network data. """
+    """This program is designed to allow the user to load image data, train a neural network on the image data, 
+    or make predictions based on the stored neural network data. 
+
+    Commands: 
+
+    load: Loads image data. Input test and train file as an argument.
+
+    Example: python convolutional_NN.py load testFile.tif trainFile.tif 
+
+
+    train: Input testFile trainFile, and number of epochs to train data. 
+    Loads image data and trains the convolutional neural network to 
+    detect sand dunes. Saves trained network on a pickle file. 
+
+    Example: python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
+
+
+    predict:Using existing trained network pickled data, make predictions 
+    on pickle data. Input image as an argument. 
+
+    Example: python convolutional_NN.py predict inputFile.tif
+
+
+    """
     pass
 
 @userInterface.command()
@@ -319,7 +342,7 @@ def userInterface():
 @click.argument('testfile')
 @click.argument('trainfile')
 def load(testfile, trainfile):
-    """ Loads image data. Input test and train file as an argument. Example: python convolutional_NN.py load testFile.tif trainFile.tif """
+    """ Loads and prints image specs. """
     #Convert Unicode to string
     test = str(testfile)
     train = str(trainfile)
@@ -330,7 +353,7 @@ def load(testfile, trainfile):
 @click.argument('trainfile')
 @click.option('--epochs', default=1 ,help=' Input number of Epochs you would like to train network on.')
 def train(testfile, trainfile, epochs):
-    """Input testFile trainFile, and number of epochs to train data. Loads image data and trains the convolutional neural network to detect sand dunes. Saves trained network on a pickle file. Example: python convolutional_NN.py load testFile.tif trainFile.tif --epochs=10"""
+    """Train convolutional neural network. """
     #Convert Unicode to string
     test = str(testfile)
     train = str(trainfile)
@@ -342,7 +365,7 @@ def train(testfile, trainfile, epochs):
 #@click.option('--predict', is_flag=True, help='Using existing trained network pickled data, make predictions on pickle data.')
 @click.argument('input')
 def predict(input):
-    """Using existing trained network pickled data, make predictions on pickle data. Input image as an argument. """
+    """Make predictions on input image."""
     input = str(input)
     click.echo('Making Predictions....')
     makePredictions(input)
