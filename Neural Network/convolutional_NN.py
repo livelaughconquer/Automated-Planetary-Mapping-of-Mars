@@ -12,6 +12,7 @@ import matplotlib.cm as cm
 import pylab
 import cPickle as pickle
 import os.path
+import urllib, urllib2
 
 #Lasagne Imports
 import lasagne
@@ -85,6 +86,21 @@ def get_labeled_data(filename, training_file, block_size=32):
          #im = Image.fromarray(test_blocks[i][i])
          #im.save(str(i) +"label.tif")
     return test_blocks, label_blocks
+
+# Simple function that downloads a hirise image when filename follows naming convention i.e. PSP_009650_1755_RED.JP2
+def download_image(filename):
+    url = "http://hirise-pds.lpl.arizona.edu/PDS/RDR/"
+    filename =filename.upper()
+    splitfile =filename.split("_")
+    url += splitfile[0] + "/ORB_" + splitfile[1][:-2] + "00_"+splitfile[1][:-2]+"99/"
+    url += splitfile[0] + "_" + splitfile[1] + "_" + splitfile[2] + "/" +filename
+    try:
+        ret = urllib2.urlopen(url)
+        urllib.urlretrieve(url,filename)
+    except:
+        print "File not found online"
+    return
+
 
 def view_data(block_number):
     """View Image with labeled image"""
