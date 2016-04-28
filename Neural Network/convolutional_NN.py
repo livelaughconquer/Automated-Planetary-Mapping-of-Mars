@@ -210,7 +210,7 @@ def getPredictionData(inputFile, block_size=32):
 
     X = np.array(X).astype(np.float32)
     X = X.reshape(-1, 1, block_size, block_size)
-    return X
+    return X, rows,cols
 
 #######################################################################################################################
 #######################################################################################################################
@@ -289,7 +289,7 @@ def trainNetwork(epochs, testFile, trainFile):
 #Step 4 Look at Predictions from neural network
 def makePredictions(inputFile):
 
-    X = getPredictionData(inputFile)
+    X, rows, cols = getPredictionData(inputFile)
 
     click.echo('Loading trained network data....')
     #Load stored data from network
@@ -346,20 +346,25 @@ def userInterface():
 
     load: Loads image data. Input test and train file as an argument.
 
-    Example: python convolutional_NN.py load testFile.tif trainFile.tif 
+    i.e. python convolutional_NN.py load testFile.tif trainFile.tif
 
 
     train: Input testFile trainFile, and number of epochs to train data. 
     Loads image data and trains the convolutional neural network to 
     detect sand dunes. Saves trained network on a pickle file. 
 
-    Example: python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
+    i.e. python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
 
 
     predict:Using existing trained network pickled data, make predictions 
     on pickle data. Input image as an argument. 
 
-    Example: python convolutional_NN.py predict inputFile.tif
+    i.e. python convolutional_NN.py predict inputFile.tif
+
+    download: Simple function that downloads a hirise image when
+    filename follows naming convention
+
+    i.e. PSP_009650_1755_RED.JP2
 
 
     """
@@ -398,6 +403,14 @@ def predict(input):
     #click.echo('Making Predictions....')
     makePredictions(input)
     click.echo('Predictions done.')
+
+@userInterface.command()
+@click.argument('file')
+def download():
+    """Download HiRise image."""
+    click.echo('Downloading image....')
+    download_image(file)
+    click.echo('Downloading done.')
 
 if __name__ == '__main__':
     """Main Function"""
