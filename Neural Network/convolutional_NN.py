@@ -55,14 +55,14 @@ def create_image_blocks(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,
 def get_labeled_data(filename, training_file, block_size=32):
     """Read input-array (image) and label-images and return it as list of tuples. """
 
-    rows,cols =  load_extension.getDims(filename)
+    rows,cols = load_extension.getDims(filename)
     print rows,cols
 
-    image = np.ones((rows,cols),'uint8')
-    label_image = np.ones((rows,cols),'uint8')
+    image = np.ones((rows, cols), 'uint8')
+    label_image = np.ones((rows, cols), 'uint8')
     # x is a dummy to use as a form of error checking will return false on error
-    x = load_extension.getImage(image ,filename)
-    x = load_extension.getTraining(label_image,filename, training_file)
+    x = load_extension.getImage(image, filename)
+    x = load_extension.getTraining(label_image, filename, training_file)
     X = []
     y = []
     for i in xrange(0,rows,block_size):
@@ -85,6 +85,7 @@ def get_labeled_data(filename, training_file, block_size=32):
     #or i in range(blocks):
          #im = Image.fromarray(test_blocks[i][i])
          #im.save(str(i) +"label.tif")
+
     return test_blocks, label_blocks
 
 # Simple function that downloads a hirise image when filename follows naming convention i.e. PSP_009650_1755_RED.JP2
@@ -193,24 +194,27 @@ def load4d(blocks, row_pixel, col_pixel,og_row_pixel, og_col_pixel,image):
 
 def getPredictionData(inputFile, block_size=32):
      #Load image using extension
-    rows,cols =  load_extension.getDims(inputFile)
-    print rows,cols
-    image = np.ones((rows,cols),'uint8')
+    rows, cols = load_extension.getDims(inputFile)
+    print rows, cols
+    image = np.ones((rows, cols), 'uint8')
     # x is a dummy to use as a form of error checking will return false on error
-    x = load_extension.getImage(image ,inputFile)
+    x = load_extension.getImage(image, inputFile)
     X = []
+    blocklist = []
 
     block_size = 32
     for i in xrange(0,rows,block_size):
         for j in xrange(0,cols,block_size):
             try:
                 X.append(image[i:i + block_size, j:j + block_size].reshape(1, block_size * block_size))
+                blocklist.append(image[i:i + block_size, j:j + block_size])
             except ValueError:
                 continue
 
     X = np.array(X).astype(np.float32)
     X = X.reshape(-1, 1, block_size, block_size)
-    return X, rows,cols
+    load_extension.getImage(image, inputFile)
+    return X, image, blocklist
 
 #######################################################################################################################
 #######################################################################################################################
@@ -255,26 +259,26 @@ def trainNetwork(epochs, testFile, trainFile):
     """Function that trains implemented network"""
 
     test_blocks, label_blocks = loadDataset(testFile, trainFile)
-    
+
     #Check to see if an existing pickle file exists
     if os.path.isfile('net.pickle'):
         # Load stored model
         with open('net.pickle', 'rb') as f:
             net_pretrain = pickle.load(f)
         # Train the previous model over more epochs
-        net_pretrain.max_epochs = epochs  
+        net_pretrain.max_epochs = epochs
 
         #Train pre-trained network
-        train = net_pretrain.fit(test_blocks, label_blocks) 
+        train = net_pretrain.fit(test_blocks, label_blocks)
 
         #Store the trained model
         with open('net.pickle', 'wb') as f:
             pickle.dump(net_pretrain, f, -1)
         return net_pretrain
 
-    #If pickle does not exist then train network for the first time.     
+    #If pickle does not exist then train network for the first time.
     else:
-        #Create Neural Network 
+        #Create Neural Network
         net = convolutionalNeuralNetwork(epochs)
         #Train Neural Net
         train = net.fit(test_blocks, label_blocks)
@@ -289,7 +293,7 @@ def trainNetwork(epochs, testFile, trainFile):
 #Step 4 Look at Predictions from neural network
 def makePredictions(inputFile):
 
-    X, rows, cols = getPredictionData(inputFile)
+    X, image, blocklist = getPredictionData(inputFile)
 
     click.echo('Loading trained network data....')
     #Load stored data from network
@@ -305,6 +309,7 @@ def makePredictions(inputFile):
     #Make predictions
     y_pred = net_pretrain.predict(X)
 
+
     #Checking to see if predictions detect any sand dunes. Outputs the indice where a 1 is found.
     ones = 0
     zeroes = 0
@@ -316,6 +321,10 @@ def makePredictions(inputFile):
         elif y_pred[i] == 0:
             zeroes += 1
 
+    for x, y in enumerate(y_pred):
+        if y == 1:
+            blocklist[x][:] = 255
+
     click.echo('')
     click.echo('Dune blocks detected followed by negative blocks.')
     print ones, zeroes
@@ -323,14 +332,23 @@ def makePredictions(inputFile):
     click.echo('')
     click.echo('Adding predictions to input image....')
     #Adding predictions to image data
+    """
     white_pixels = np.array([255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255])
     for block in array_dunes:
         for i in range(32):
-            X[block][0][i] = white_pixels;
+            X[block][0][i] = white_pixels
+
 
     #Writing image
+    rows, cols = load_extension.getDims(inputFile)
+    #nh = rows / 32  # New height
+    #nw = X.shape[0] // nh  # New width
+    #predictimg = X.reshape(nh, nw, X.shape[2], X.shape[3]).swapaxes(1, 2).reshape(nh*X.shape[2], nw*X.shape[3])
+    """
+    load_extension.writeImage(image, 'prediction.tif')
     click.echo('')
     click.echo('Writing image to directory....')
+
 
 
 ##############################################################################################################################
@@ -339,32 +357,27 @@ def makePredictions(inputFile):
 
 @click.group()
 def userInterface():
-    """This program is designed to allow the user to load image data, train a neural network on the image data, 
-    or make predictions based on the stored neural network data. 
+    """This program is designed to allow the user to load image data, train a neural network on the image data,
+    or make predictions based on the stored neural network data.
 
-    Commands: 
+    Commands:
 
     load: Loads image data. Input test and train file as an argument.
 
-    i.e. python convolutional_NN.py load testFile.tif trainFile.tif
+    Example: python convolutional_NN.py load testFile.tif trainFile.tif
 
 
-    train: Input testFile trainFile, and number of epochs to train data. 
-    Loads image data and trains the convolutional neural network to 
-    detect sand dunes. Saves trained network on a pickle file. 
+    train: Input testFile trainFile, and number of epochs to train data.
+    Loads image data and trains the convolutional neural network to
+    detect sand dunes. Saves trained network on a pickle file.
 
-    i.e. python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
+    Example: python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
 
 
-    predict:Using existing trained network pickled data, make predictions 
-    on pickle data. Input image as an argument. 
+    predict:Using existing trained network pickled data, make predictions
+    on pickle data. Input image as an argument.
 
-    i.e. python convolutional_NN.py predict inputFile.tif
-
-    download: Simple function that downloads a hirise image when
-    filename follows naming convention
-
-    i.e. PSP_009650_1755_RED.JP2
+    Example: python convolutional_NN.py predict inputFile.tif
 
 
     """
@@ -403,14 +416,6 @@ def predict(input):
     #click.echo('Making Predictions....')
     makePredictions(input)
     click.echo('Predictions done.')
-
-@userInterface.command()
-@click.argument('file')
-def download():
-    """Download HiRise image."""
-    click.echo('Downloading image....')
-    download_image(file)
-    click.echo('Downloading done.')
 
 if __name__ == '__main__':
     """Main Function"""
