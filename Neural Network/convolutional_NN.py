@@ -364,22 +364,24 @@ def userInterface():
 
     load: Loads image data. Input test and train file as an argument.
 
-    Example: python convolutional_NN.py load testFile.tif trainFile.tif
+    i.e. python convolutional_NN.py load testFile.tif trainFile.tif
 
 
     train: Input testFile trainFile, and number of epochs to train data.
     Loads image data and trains the convolutional neural network to
     detect sand dunes. Saves trained network on a pickle file.
 
-    Example: python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
+    i.e. python convolutional_NN.py train testFile.tif trainFile.tif --epochs=10
 
 
     predict:Using existing trained network pickled data, make predictions
     on pickle data. Input image as an argument.
 
-    Example: python convolutional_NN.py predict inputFile.tif
+    i.e. python convolutional_NN.py predict inputFile.tif
 
+    download:Simple function that downloads a hirise image when filename follows naming convention 
 
+    i.e. PSP_009650_1755_RED.JP2 
     """
     pass
 
@@ -416,6 +418,16 @@ def predict(input):
     #click.echo('Making Predictions....')
     makePredictions(input)
     click.echo('Predictions done.')
+
+@userInterface.command()
+@click.argument('name')
+def download(name):
+    """"Download image."""
+    name = str(name)
+    click.echo('Downloading HiRise image ....')
+    download_image(name)
+    click.echo('Image downloaded to directory.')
+
 
 if __name__ == '__main__':
     """Main Function"""
