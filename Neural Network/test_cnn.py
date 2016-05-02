@@ -4,11 +4,11 @@ import load_extension
 import os
 import numpy as np
 import cPickle as pickle
-import convolutional_NN as cn
-import makeTest as mt
+import cnn as cn
+import make_test as mt
 
 
-class Test_convolutional_nn(unittest.TestCase):
+class TestCNN(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
