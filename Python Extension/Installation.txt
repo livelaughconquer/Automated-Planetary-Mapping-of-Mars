@@ -1,0 +1,10 @@
+For python 2.7 installation
+
+1.	Open a command prompt
+2.	CD to the "/Python Extension/" in the cloned repository
+3.	In the console type and enter (without quotes) "set DISUTILS_USE_SDK=1"
+4 	Then, enter (witout quotes) "set MSSdk=1"
+5	Next, enter (without quotes) "python setup.py install" 		*NOTE* if python variable not set use complete path to python 2.7 
+6	Add the path to "/Python Extension/libs" to the PATH environment variable
+7.	import load_extension in python script
+
